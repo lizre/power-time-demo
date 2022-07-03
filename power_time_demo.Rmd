@@ -1,0 +1,147 @@
+---
+title: "Ideating experiments that deliver insights fast"
+output: github_document
+---
+
+## TLDR: Use high-traffic surfaces and high baseline metrics 
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(
+  echo = FALSE, # don't print the code when knitted to markdown
+  fig.width = 8,
+  fig.height = 6,
+  fig.retina = 4
+  ) 
+library(here)
+here::here()
+
+library(tidyverse)
+library(lubridate)
+library(pwr)
+
+pretty_kable <- purrr::partial(knitr::kable, format.args = list(big.mark = ","))
+
+# this function tells you the required N
+gen_power_n <- function(base.effect, expected.lift) {
+  new.effect <- base.effect * (1 + expected.lift)
+  effect.size <- ES.h(base.effect, new.effect)
+  power_analysis <- pwr.2p.test( # 2-proportion power analysis function
+    h = effect.size,
+    n = NULL, # sample size, NULL because we want to compute this
+    sig.level = 0.05, 
+    power = 0.8, 
+    alternative = "two.sided" # 2-sided test
+  )
+  power_analysis$n * 3
+  # the rest of the function tells you how many people you need per group. here, because we have two groups, multiply by 2 to get total N needed.
+}
+
+```
+
+### Scenario 0: I hope you're patient 📅 
+
+📈 Baseline: 5%
+<br>🚎 Traffic: 1500 viewers per day
+
+```{r}
+# calculate the base effect
+base.effect <- .05
+enrollment.percents <- c(1)
+expected.lifts <- c(0.025, 0.05, .1)
+pwr.options <- expand.grid(list("enrollment.percent" = enrollment.percents, 
+                                "expected.lift" = expected.lifts))
+
+daily.viewers <- 1500
+
+tibble(pwr.options,
+    daily.viewers) %>% 
+      rowwise() %>% 
+        mutate(users.needed = ceiling(gen_power_n(base.effect, 
+                                            expected.lift))) %>% 
+          ungroup() %>% 
+            mutate(daily.enrolled = round(enrollment.percents * daily.viewers),
+                   num.days = ceiling(users.needed / daily.enrolled)) %>% 
+  mutate(across(c(expected.lift, 
+                  enrollment.percent),
+                function(x) str_c(100*x,"%"))) %>% 
+  select(`Expected Change` = expected.lift,
+    `Users Needed` = users.needed,
+    `Enrollment Percent` = enrollment.percent,
+    `Daily Trials Enrolled` = daily.enrolled,
+    `Days to Insight` = num.days) %>% pretty_kable()
+
+```
+
+
+### Happy scenario #1: Choose a metric with a higher baseline 📈
+
+📈 Baseline: 30%
+<br>🚎 Traffic: 1500 viewers per day
+
+```{r}
+# calculate the base effect
+base.effect <- .30
+enrollment.percents <- c(1)
+expected.lifts <- c(0.025, 0.05, .1)
+pwr.options <- expand.grid(list("enrollment.percent" = enrollment.percents, 
+                                "expected.lift" = expected.lifts))
+
+daily.viewers <- 1500
+
+tibble(pwr.options,
+    daily.viewers) %>% 
+      rowwise() %>% 
+        mutate(users.needed = ceiling(gen_power_n(base.effect, 
+                                            expected.lift))) %>% 
+          ungroup() %>% 
+            mutate(daily.enrolled = round(enrollment.percents * daily.viewers),
+                   num.days = ceiling(users.needed / daily.enrolled)) %>% 
+  mutate(across(c(expected.lift, 
+                  enrollment.percent),
+                function(x) str_c(100*x,"%"))) %>% 
+  select(`Expected Change` = expected.lift,
+    `Users Needed` = users.needed,
+    `Enrollment Percent` = enrollment.percent,
+    `Daily Trials Enrolled` = daily.enrolled,
+    `Days to Insight` = num.days) %>% pretty_kable()
+
+```
+
+
+### Happy scenario #2: Choose a surface with higher traffic 🚎🚕🚚 
+
+📈 Baseline: 5%
+<br>🚎 Traffic: 7500 viewers per day
+
+```{r}
+# calculate the base effect
+base.effect <- .05
+enrollment.percents <- c(1)
+expected.lifts <- c(0.025, 0.05, .1)
+pwr.options <- expand.grid(list("enrollment.percent" = enrollment.percents, 
+                                "expected.lift" = expected.lifts))
+
+daily.viewers <- 7500
+
+tibble(pwr.options,
+    daily.viewers) %>% 
+      rowwise() %>% 
+        mutate(users.needed = ceiling(gen_power_n(base.effect, 
+                                            expected.lift))) %>% 
+          ungroup() %>% 
+            mutate(daily.enrolled = round(enrollment.percents * daily.viewers),
+                   num.days = ceiling(users.needed / daily.enrolled)) %>% 
+  mutate(across(c(expected.lift, 
+                  enrollment.percent),
+                function(x) str_c(100*x,"%"))) %>% 
+  select(`Expected Change` = expected.lift,
+    `Users Needed` = users.needed,
+    `Enrollment Percent` = enrollment.percent,
+    `Daily Trials Enrolled` = daily.enrolled,
+    `Days to Insight` = num.days) %>% pretty_kable()
+
+```
+
+### Scenario #you 🧑‍🔬
+[Run your own numbers!](https://www.abtasty.com/sample-size-calculator/)
